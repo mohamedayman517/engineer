@@ -17,7 +17,13 @@ app.use(express.static(path.join(__dirname, "dist")));
 
 // Database connection
 const mongoUri =
-  process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/architectbot";
+  process.env.MONGODB_URI;
+
+if (!mongoUri) {
+  console.error("❌ MONGODB_URI environment variable not set. Please provide a connection string.");
+  process.exit(1);
+}
+
 mongoose.connect(mongoUri)
   .then(() => {
     console.log("✅ connected to DB");

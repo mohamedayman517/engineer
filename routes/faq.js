@@ -47,6 +47,44 @@ function calculateMatchScore(userQuestion, faq) {
   return score;
 }
 
+/**
+ * Finds the best FAQ answer for a given question.
+ * @param {string} question - The user's question.
+ * @returns {Promise<string>} The answer string.
+ */
+async function findFaqAnswer(question) {
+  const faqs = await Faq.find();
+  if (faqs.length === 0) {
+    console.warn('Database is empty. No FAQs found.');
+    return "عذراً، لا توجد بيانات في قاعدة البيانات حالياً.";
+  }
+
+  // 1. Check for an exact match first
+  const exactMatch = faqs.find(faq => faq.question.trim().toLowerCase() === question.toLowerCase());
+  if (exactMatch) {
+    return exactMatch.answer;
+  }
+
+  // 2. If no exact match, find the best partial match using a scoring system
+  let bestMatch = null;
+  let bestMatchScore = 0;
+
+  for (const faq of faqs) {
+    const currentScore = calculateMatchScore(question, faq);
+    if (currentScore > bestMatchScore) {
+      bestMatchScore = currentScore;
+      bestMatch = faq;
+    }
+  }
+
+  if (bestMatch && bestMatchScore >= MATCH_THRESHOLD) {
+    return bestMatch.answer;
+  }
+
+  // 3. If no suitable match is found, return the default answer
+  return DEFAULT_ANSWER;
+}
+
 router.post("/faq/ask", async (req, res) => {
   try {
     const { question: rawQuestion } = req.body;
@@ -56,37 +94,8 @@ router.post("/faq/ask", async (req, res) => {
     }
 
     const question = rawQuestion.trim();
-
-    const faqs = await Faq.find();
-    if (faqs.length === 0) {
-      console.warn('Database is empty. No FAQs found.');
-      return res.json({ answer: "عذراً، لا توجد بيانات في قاعدة البيانات حالياً." });
-    }
-
-    // 1. Check for an exact match first
-    const exactMatch = faqs.find(faq => faq.question.trim().toLowerCase() === question.toLowerCase());
-    if (exactMatch) {
-      return res.json({ answer: exactMatch.answer });
-    }
-
-    // 2. If no exact match, find the best partial match using a scoring system
-    let bestMatch = null;
-    let bestMatchScore = 0;
-
-    for (const faq of faqs) {
-      const currentScore = calculateMatchScore(question, faq);
-      if (currentScore > bestMatchScore) {
-        bestMatchScore = currentScore;
-        bestMatch = faq;
-      }
-    }
-
-    if (bestMatch && bestMatchScore >= MATCH_THRESHOLD) {
-      return res.json({ answer: bestMatch.answer });
-    }
-
-    // 3. If no suitable match is found, return the default answer
-    return res.json({ answer: DEFAULT_ANSWER });
+    const answer = await findFaqAnswer(question);
+    return res.json({ answer });
 
   } catch (error) {
     console.error("Error in /faq/ask route:", error);
@@ -125,21 +134,14 @@ router.get('/db-status', async (req, res) => {
 // للتوافق مع chat.jsx
 router.post("/faq", async (req, res) => {
   try {
-    const { question } = req.body;
-
-    if (!question || typeof question !== 'string' || question.trim() === '') {
-      // إذا لم يتم تقديم سؤال، أرجع الإجابة الافتراضية
+    const { question: rawQuestion } = req.body;
+    if (!rawQuestion || typeof rawQuestion !== 'string' || rawQuestion.trim() === "") {
       return res.json({ answer: DEFAULT_ANSWER });
     }
 
-    const faq = await Faq.findOne({
-      question: { $regex: new RegExp(question, "i") }
-    });
-
-    if (faq) {
-      return res.json({ answer: faq.answer });
-    }
-    return res.json({ answer: DEFAULT_ANSWER });
+    const question = rawQuestion.trim();
+    const answer = await findFaqAnswer(question);
+    return res.json({ answer });
   } catch (error) {
     console.error("Error in /faq route:", error);
     return res.status(500).json({ error: "حدث خطأ في الخادم" });
