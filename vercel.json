@@ -3,10 +3,11 @@
   "name": "chatbot-fullstack",
   "builds": [
     {
-      "src": "app.js",
+      "src": "api/index.js",
       "use": "@vercel/node",
       "config": {
-        "maxLambdaSize": "50mb"
+        "maxLambdaSize": "50mb",
+        "includeFiles": "**"
       }
     },
     {
@@ -20,7 +21,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/app.js"
+      "dest": "/api/index.js"
     },
     {
       "src": "/uploads/(.*)",
@@ -39,15 +40,9 @@
     "NODE_ENV": "production"
   },
   "functions": {
-    "app.js": {
+    "api/index.js": {
       "maxDuration": 30,
       "memory": 1024
     }
-  },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/app.js"
-    }
-  ]
+  }
 }
