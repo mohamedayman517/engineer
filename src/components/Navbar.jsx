@@ -80,14 +80,14 @@ function Navbar() {
               </Link>
             </li>
             )}
-            {!isAdmin() && !isEngineer (
+            {!isAdmin() && !isEngineer() && (
               <li className="nav-item">
                 <Link className="nav-link" to="/contact">
                   <i className="fas fa-envelope me-1"></i>تواصل
                 </Link>
               </li>
             )}
-            {!isAdmin() && !isEngineer (
+            {!isAdmin() && !isEngineer() && (
               <li className="nav-item">
                 <Link className="nav-link" to="/chat">
                   <i className="fas fa-comments me-1"></i>المحادثة
