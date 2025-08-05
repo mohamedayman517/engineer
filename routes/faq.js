@@ -1,150 +1,303 @@
 const express = require("express");
 const router = express.Router();
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 const Faq = require("../models/Faq");
 
-// نقطة نهاية للتحقق من حالة الخادم
+console.log("FAQ routes loaded");
+
+// Health check endpoint
 router.get("/status", (req, res) => {
   console.log("Status endpoint hit");
   return res.json({ status: "ok", message: "الخادم يعمل بشكل صحيح" });
 });
 
-// للتوافق مع ChatBot.jsx - تبسيط المنطق
-const DEFAULT_ANSWER = "عذراً، لا أعرف إجابة هذا السؤال. يمكنك التواصل معي مباشرة.";
-const MATCH_THRESHOLD = 1; // على الأقل كلمة واحدة مشتركة أو تطابق جزئي
-
-/**
- * Calculates a match score between a user's question and a FAQ item.
- * @param {string} userQuestion - The normalized question from the user.
- * @param {object} faq - The FAQ object from the database { question, answer }.
- * @returns {number} The calculated score.
- */
-function calculateMatchScore(userQuestion, faq) {
-  const faqQuestion = faq.question.toLowerCase();
-  const userQuestionWords = userQuestion.toLowerCase().split(/\s+/).filter(w => w.length > 1);
-  const faqWords = faqQuestion.split(/\s+/).filter(w => w.length > 1);
-  let score = 0;
-
-  // 1. Word-based scoring
-  for (const userWord of userQuestionWords) {
-    for (const faqWord of faqWords) {
-      if (userWord === faqWord) {
-        score += 2; // Higher score for exact word match
-        break; 
-      }
-      if (faqWord.includes(userWord) || userWord.includes(faqWord)) {
-        score += 1; // Lower score for partial match
-        break;
-      }
-    }
-  }
-
-  // 2. Phrase-based scoring bonus
-  if (faqQuestion.includes(userQuestion.toLowerCase()) || userQuestion.toLowerCase().includes(faqQuestion)) {
-    score += 3;
-  }
-
-  return score;
-}
-
-/**
- * Finds the best FAQ answer for a given question.
- * @param {string} question - The user's question.
- * @returns {Promise<string>} The answer string.
- */
-async function findFaqAnswer(question) {
-  const faqs = await Faq.find();
-  if (faqs.length === 0) {
-    console.warn('Database is empty. No FAQs found.');
-    return "عذراً، لا توجد بيانات في قاعدة البيانات حالياً.";
-  }
-
-  // 1. Check for an exact match first
-  const exactMatch = faqs.find(faq => faq.question.trim().toLowerCase() === question.toLowerCase());
-  if (exactMatch) {
-    return exactMatch.answer;
-  }
-
-  // 2. If no exact match, find the best partial match using a scoring system
-  let bestMatch = null;
-  let bestMatchScore = 0;
-
-  for (const faq of faqs) {
-    const currentScore = calculateMatchScore(question, faq);
-    if (currentScore > bestMatchScore) {
-      bestMatchScore = currentScore;
-      bestMatch = faq;
-    }
-  }
-
-  if (bestMatch && bestMatchScore >= MATCH_THRESHOLD) {
-    return bestMatch.answer;
-  }
-
-  // 3. If no suitable match is found, return the default answer
-  return DEFAULT_ANSWER;
-}
-
-router.post("/faq/ask", async (req, res) => {
+// Get all FAQs
+router.get("/", async (req, res) => {
   try {
-    const { question: rawQuestion } = req.body;
-
-    if (!rawQuestion || typeof rawQuestion !== 'string' || rawQuestion.trim() === "") {
-      return res.status(400).json({ error: "يرجى تقديم سؤال صالح" });
-    }
-
-    const question = rawQuestion.trim();
-    const answer = await findFaqAnswer(question);
-    return res.json({ answer });
-
+    console.log("Fetching all FAQs");
+    const faqs = await Faq.find({});
+    console.log(`Found ${faqs.length} FAQs`);
+    res.json(faqs);
   } catch (error) {
-    console.error("Error in /faq/ask route:", error);
-    return res.status(500).json({ error: "حدث خطأ في الخادم" });
+    console.error("Error fetching FAQs:", error);
+    res.status(500).json({ error: "حدث خطأ أثناء جلب الأسئلة الشائعة" });
   }
 });
 
-// إضافة نقطة نهاية للتحقق من حالة قاعدة البيانات وعرض جميع الأسئلة والأجوبة
-router.get('/db-status', async (req, res) => {
+// Handle FAQ search (for chatbot)
+router.post("/search", async (req, res) => {
+  const requestId = Math.random().toString(36).substring(2, 8);
+  console.log(`\n[${requestId}] === FAQ SEARCH ROUTE HIT ===`);
+  
   try {
-    console.log('Checking database status...');
-    console.log('MongoDB connection status:', mongoose.connection.readyState);
+    // Log request details
+    console.log(`[${requestId}] Headers:`, JSON.stringify(req.headers));
+    console.log(`[${requestId}] Content-Type:`, req.headers['content-type']);
     
-    const faqs = await Faq.find();
-    console.log(`Found ${faqs.length} FAQs in database`);
+    // Log request body
+    console.log(`[${requestId}] Body:`, JSON.stringify(req.body, null, 2));
     
-    // إعداد قائمة بالأسئلة والأجوبة للعرض
-    const faqList = faqs.map(faq => ({
-      id: faq._id,
-      question: faq.question,
-      answer: faq.answer
-    }));
+    // Validate request
+    if (!req.body || !req.body.question) {
+      console.log(`[${requestId}] Invalid request: No question provided`);
+      return res.status(400).json({ error: "يجب توفير سؤال للبحث" });
+    }
+    
+    const { question } = req.body;
+    console.log(`[${requestId}] Searching for:`, question);
+    
+    // Search for exact match first
+    const exactMatch = await Faq.findOne({ 
+      question: { $regex: new RegExp(`^${question}$`, 'i') } 
+    });
+    
+    if (exactMatch) {
+      console.log(`[${requestId}] Exact match found:`, exactMatch.question);
+      return res.json({ answer: exactMatch.answer });
+    }
+    
+    // If no exact match, search for partial matches
+    const faqs = await Faq.find({});
+    console.log(`[${requestId}] Total FAQs in database:`, faqs.length);
+    
+    // Try to find a partial match
+    const partialMatch = faqs.find(faq => 
+      faq.question.toLowerCase().includes(question.toLowerCase()) ||
+      question.toLowerCase().includes(faq.question.toLowerCase())
+    );
+    
+    if (partialMatch) {
+      console.log(`[${requestId}] Partial match found:`, partialMatch.question);
+      return res.json({ answer: partialMatch.answer });
+    }
+    
+    // If no match found
+    console.log(`[${requestId}] No match found`);
+    res.json({ 
+      answer: "عذراً، لا أعرف إجابة هذا السؤال. يمكنك التواصل معي مباشرة." 
+    });
+    
+  } catch (error) {
+    console.error(`[${requestId}] Search error:`, error);
+    res.status(500).json({ 
+      error: "حدث خطأ أثناء البحث عن الإجابة",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Add a new FAQ
+router.post("/", async (req, res) => {
+  const requestId = Math.random().toString(36).substring(2, 8);
+  console.log(`\n[${requestId}] === ADD FAQ ROUTE HIT ===`);
+  
+  try {
+    // Log request details
+    console.log(`[${requestId}] Headers:`, JSON.stringify(req.headers));
+    console.log(`[${requestId}] Body:`, JSON.stringify(req.body, null, 2));
+    
+    // Validate request
+    if (!req.body || !req.body.question || !req.body.answer) {
+      console.log(`[${requestId}] Invalid request: Missing question or answer`);
+      return res.status(400).json({ 
+        error: "يجب توفير السؤال والإجابة",
+        requestId
+      });
+    }
+    
+    const { question, answer } = req.body;
+    
+    // Check if FAQ already exists (case insensitive)
+    const existingFaq = await Faq.findOne({ 
+      question: { $regex: new RegExp(`^${question}$`, 'i') } 
+    });
+    
+    if (existingFaq) {
+      console.log(`[${requestId}] FAQ already exists:`, existingFaq.question);
+      return res.status(400).json({ 
+        error: "هذا السؤال موجود بالفعل",
+        requestId
+      });
+    }
+    
+    // Create new FAQ
+    const newFaq = new Faq({
+      question: question.trim(),
+      answer: answer.trim()
+    });
+    
+    console.log(`[${requestId}] Saving new FAQ:`, newFaq);
+    
+    // Save to database
+    const savedFaq = await newFaq.save();
+    console.log(`[${requestId}] FAQ saved successfully:`, savedFaq);
+    
+    // Get updated count
+    const count = await Faq.countDocuments();
+    console.log(`[${requestId}] Total FAQs in database:`, count);
+    
+    // Return success response
+    res.status(201).json({
+      message: "تمت إضافة السؤال بنجاح",
+      faq: savedFaq,
+      totalFAQs: count,
+      requestId
+    });
+    
+  } catch (error) {
+    console.error(`[${requestId}] Error adding FAQ:`, error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        error: "بيانات غير صالحة",
+        details: error.message,
+        requestId
+      });
+    }
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      return res.status(400).json({
+        error: "هذا السؤال موجود بالفعل",
+        requestId
+      });
+    }
+    
+    // Handle other errors
+    res.status(500).json({
+      error: "حدث خطأ أثناء إضافة السؤال",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      requestId
+    });
+  }
+});
+
+// Update an existing FAQ
+router.put("/:id", async (req, res) => {
+  const requestId = Math.random().toString(36).substring(2, 8);
+  console.log(`\n[${requestId}] === UPDATE FAQ ROUTE HIT ===`);
+  
+  try {
+    const { id } = req.params;
+    const { question, answer } = req.body;
+    
+    console.log(`[${requestId}] Updating FAQ ${id}`);
+    console.log(`[${requestId}] New data:`, { question, answer });
+    
+    // Validate input
+    if (!question && !answer) {
+      return res.status(400).json({
+        error: "يجب توفير السؤال أو الإجابة للتحديث",
+        requestId
+      });
+    }
+    
+    // Prepare update data
+    const updateData = {};
+    if (question) updateData.question = question.trim();
+    if (answer) updateData.answer = answer.trim();
+    
+    // Update FAQ
+    const updatedFaq = await Faq.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedFaq) {
+      console.log(`[${requestId}] FAQ not found:`, id);
+      return res.status(404).json({
+        error: "لم يتم العثور على السؤال",
+        requestId
+      });
+    }
+    
+    console.log(`[${requestId}] FAQ updated successfully:`, updatedFaq);
     
     res.json({
-      status: 'ok',
-      connection: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-      count: faqs.length,
-      faqs: faqList
+      message: "تم تحديث السؤال بنجاح",
+      faq: updatedFaq,
+      requestId
     });
+    
   } catch (error) {
-    console.error('Error checking database status:', error);
-    res.status(500).json({ error: "خطأ في الاتصال بقاعدة البيانات" });
+    console.error(`[${requestId}] Error updating FAQ:`, error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        error: "بيانات غير صالحة",
+        details: error.message,
+        requestId
+      });
+    }
+    
+    // Handle cast errors (invalid ID format)
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        error: "معرف السؤال غير صالح",
+        requestId
+      });
+    }
+    
+    // Handle other errors
+    res.status(500).json({
+      error: "حدث خطأ أثناء تحديث السؤال",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      requestId
+    });
   }
 });
 
-// للتوافق مع chat.jsx
-router.post("/faq", async (req, res) => {
+// Delete an FAQ
+router.delete("/:id", async (req, res) => {
+  const requestId = Math.random().toString(36).substring(2, 8);
+  console.log(`\n[${requestId}] === DELETE FAQ ROUTE HIT ===`);
+  
   try {
-    const { question: rawQuestion } = req.body;
-    if (!rawQuestion || typeof rawQuestion !== 'string' || rawQuestion.trim() === "") {
-      return res.json({ answer: DEFAULT_ANSWER });
+    const { id } = req.params;
+    console.log(`[${requestId}] Deleting FAQ:`, id);
+    
+    const deletedFaq = await Faq.findByIdAndDelete(id);
+    
+    if (!deletedFaq) {
+      console.log(`[${requestId}] FAQ not found:`, id);
+      return res.status(404).json({
+        error: "لم يتم العثور على السؤال",
+        requestId
+      });
     }
-
-    const question = rawQuestion.trim();
-    const answer = await findFaqAnswer(question);
-    return res.json({ answer });
+    
+    console.log(`[${requestId}] FAQ deleted successfully:`, deletedFaq);
+    
+    // Get updated count
+    const count = await Faq.countDocuments();
+    
+    res.json({
+      message: "تم حذف السؤال بنجاح",
+      faq: deletedFaq,
+      totalFAQs: count,
+      requestId
+    });
+    
   } catch (error) {
-    console.error("Error in /faq route:", error);
-    return res.status(500).json({ error: "حدث خطأ في الخادم" });
+    console.error(`[${requestId}] Error deleting FAQ:`, error);
+    
+    // Handle cast errors (invalid ID format)
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        error: "معرف السؤال غير صالح",
+        requestId
+      });
+    }
+    
+    // Handle other errors
+    res.status(500).json({
+      error: "حدث خطأ أثناء حذف السؤال",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      requestId
+    });
   }
 });
 

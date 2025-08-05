@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار رفع الصور مع التصحيح</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            direction: rtl;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            display: none;
+        }
+        img {
+            max-width: 100%;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>اختبار رفع الصور إلى Cloudinary مع التصحيح</h1>
+    
+    <div class="form-group">
+        <label for="image">اختر صورة:</label>
+        <input type="file" id="image" accept="image/*">
+    </div>
+    
+    <button id="uploadBtn">رفع الصورة</button>
+    
+    <div id="result">
+        <h3>نتيجة الرفع:</h3>
+        <pre id="resultText"></pre>
+        <div id="imagePreview"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadBtn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('image');
+            const resultDiv = document.getElementById('result');
+            const resultText = document.getElementById('resultText');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            if (!fileInput.files.length) {
+                alert('الرجاء اختيار صورة أولاً');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]); // تغيير من 'file' إلى 'image' ليتطابق مع الخادم
+            
+            try {
+                resultDiv.style.display = 'block';
+                resultText.textContent = 'جاري الرفع...';
+                
+                console.log('بدء عملية الرفع');
+                const response = await fetch('http://localhost:5000/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log('استجابة الخادم:', response.status, response.statusText);
+                
+                const responseText = await response.text();
+                console.log('نص الاستجابة:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                    console.log('بيانات الاستجابة:', data);
+                } catch (e) {
+                    console.error('خطأ في تحليل JSON:', e);
+                    resultText.textContent = 'خطأ في تحليل استجابة الخادم: ' + responseText;
+                    return;
+                }
+                
+                resultText.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.imageUrl) {
+                    console.log('تم العثور على عنوان URL للصورة:', data.imageUrl);
+                    const img = document.createElement('img');
+                    img.src = data.imageUrl;
+                    imagePreview.innerHTML = '';
+                    imagePreview.appendChild(img);
+                } else {
+                    console.warn('لم يتم العثور على عنوان URL للصورة في الاستجابة');
+                }
+            } catch (error) {
+                console.error('خطأ في عملية الرفع:', error);
+                resultText.textContent = 'خطأ: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>

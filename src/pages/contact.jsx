@@ -19,17 +19,51 @@ function Contact() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState({ success: false, message: '' });
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitted Data:", formData);
-    alert("تم إرسال رسالتك بنجاح! سنتواصل معك قريباً.");
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      projectType: "",
-      message: "",
-    });
+    setIsSubmitting(true);
+    setSubmitStatus({ success: false, message: '' });
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setSubmitStatus({ success: true, message: data.message || 'تم إرسال رسالتك بنجاح! سنتواصل معك قريباً.' });
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          projectType: "",
+          message: "",
+        });
+        
+        // إخفاء رسالة النجاح تلقائياً بعد ثانية ونصف
+        setTimeout(() => {
+          setSubmitStatus({ success: false, message: '' });
+        }, 1500);
+      } else {
+        throw new Error(data.error || 'حدث خطأ أثناء إرسال الرسالة');
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitStatus({ 
+        success: false, 
+        message: error.message || 'حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى لاحقاً.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const contactInfo = [
@@ -180,7 +214,10 @@ function Contact() {
           ))}
         </div>
 
-        <div className="container text-center position-relative">
+        <div
+          className="container text-center position-relative"
+          style={{ zIndex: 2 }}
+        >
           <div className={`${isVisible ? "animate-fade-in-up" : ""}`}>
             <h1
               className="display-3 fw-bold text-white mb-4"
@@ -404,7 +441,7 @@ function Contact() {
                             border: "2px solid #e9ecef",
                             padding: "12px 20px",
                           }}
-                          placeholder="+966 50 123 4567"
+                          placeholder="+0101264889"
                         />
                       </div>
 
@@ -468,21 +505,64 @@ function Contact() {
                         <button
                           type="submit"
                           className="btn btn-lg px-5 py-3 hover-lift glow-effect"
+                          disabled={isSubmitting}
                           style={{
                             borderRadius: "25px",
-                            background:
-                              "linear-gradient(45deg, #667eea, #764ba2)",
+                            background: isSubmitting 
+                              ? "linear-gradient(45deg, #6c757d, #495057)"
+                              : "linear-gradient(45deg, #667eea, #764ba2)",
                             border: "none",
                             color: "white",
                             fontWeight: "600",
                             fontSize: "1.1rem",
                             boxShadow: "0 8px 20px rgba(102, 126, 234, 0.4)",
+                            opacity: isSubmitting ? 0.7 : 1,
+                            cursor: isSubmitting ? "not-allowed" : "pointer",
                           }}
                         >
-                          <i className="fas fa-paper-plane me-2"></i>
-                          إرسال الرسالة
+                          {isSubmitting ? (
+                            <>
+                              <i className="fas fa-spinner fa-spin me-2"></i>
+                              جاري الإرسال...
+                            </>
+                          ) : (
+                            <>
+                              <i className="fas fa-paper-plane me-2"></i>
+                              إرسال الرسالة
+                            </>
+                          )}
                         </button>
                       </div>
+
+                      {/* رسالة الحالة */}
+                      {submitStatus.message && (
+                        <div className="col-12 mt-4">
+                          <div
+                            className={`alert ${
+                              submitStatus.success ? 'alert-success' : 'alert-danger'
+                            } text-center animate-fade-in`}
+                            style={{
+                              borderRadius: "15px",
+                              border: "none",
+                              background: submitStatus.success
+                                ? "linear-gradient(45deg, #28a745, #20c997)"
+                                : "linear-gradient(45deg, #dc3545, #fd7e14)",
+                              color: "white",
+                              fontWeight: "600",
+                              fontSize: "1.1rem",
+                              boxShadow: submitStatus.success
+                                ? "0 8px 20px rgba(40, 167, 69, 0.3)"
+                                : "0 8px 20px rgba(220, 53, 69, 0.3)",
+                              animation: "fadeInUp 0.5s ease-out",
+                            }}
+                          >
+                            <i className={`fas ${
+                              submitStatus.success ? 'fa-check-circle' : 'fa-exclamation-triangle'
+                            } me-2`}></i>
+                            {submitStatus.message}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </form>
                 </div>

@@ -32,10 +32,10 @@ function ChatBot() {
     setShowQuestions(false); // إخفاء الأسئلة بعد إرسال أول سؤال
 
     try {
-      const res = await axios.post("/api/faq/ask", {
+      const res = await axios.post("/api/faq/search", {
         question: currentQuestion,
       });
-      const botMessage = { from: "bot", text: res.data.answer };
+      const botMessage = { from: "bot", text: res.data.answer || "عذراً، لا أعرف إجابة هذا السؤال. يمكنك التواصل معي مباشرة." };
       setChat((prev) => [...prev, botMessage]);
     } catch (error) {
       const errorMessage = {

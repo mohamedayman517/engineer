@@ -1,0 +1,92 @@
+/* تنسيقات صفحة تفاصيل المشروع */
+
+.project-details-page {
+  padding-top: 2rem;
+  padding-bottom: 4rem;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+.project-main-image {
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.project-main-image:hover {
+  transform: scale(1.02);
+}
+
+.thumbnail-container {
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.thumbnail-container:hover {
+  transform: translateY(-5px);
+}
+
+.active-thumbnail {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.project-details-card {
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.project-details-card:hover {
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+.project-category-badge {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 8px 16px;
+  border-radius: 30px;
+  display: inline-block;
+  margin-bottom: 1.5rem;
+}
+
+.project-info-row {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.project-info-row:last-child {
+  border-bottom: none;
+}
+
+.project-info-label {
+  font-weight: 600;
+  color: #555;
+}
+
+.back-to-projects-btn {
+  transition: all 0.3s ease;
+  border-radius: 30px;
+  padding: 12px 30px;
+  font-weight: 600;
+  margin-top: 3rem;
+}
+
+.back-to-projects-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* تأثيرات الظهور التدريجي */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

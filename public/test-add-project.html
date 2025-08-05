@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار إضافة مشروع</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            direction: rtl;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+            min-width: 150px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            background-color: #f9f9f9;
+        }
+        .image-preview {
+            max-width: 100%;
+            max-height: 200px;
+            margin: 10px 0;
+            display: none;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>اختبار إضافة مشروع جديد</h1>
+    
+    <div class="container">
+        <h2>رفع صورة أولاً</h2>
+        <div class="form-group">
+            <label for="image">اختر صورة:</label>
+            <input type="file" id="image" accept="image/*" required>
+        </div>
+        <div class="form-group">
+            <label for="token">رمز المصادقة (JWT):</label>
+            <input type="text" id="token" placeholder="أدخل رمز JWT هنا">
+        </div>
+        <img id="imagePreview" class="image-preview" alt="معاينة الصورة">
+        <button id="uploadButton">رفع الصورة</button>
+        <div class="result" id="uploadResult">نتيجة رفع الصورة ستظهر هنا...</div>
+    </div>
+
+    <div class="container">
+        <h2>إضافة مشروع جديد</h2>
+        <div class="form-group">
+            <label for="title">عنوان المشروع:</label>
+            <input type="text" id="title" placeholder="أدخل عنوان المشروع">
+        </div>
+        <div class="form-group">
+            <label for="description">وصف المشروع:</label>
+            <textarea id="description" placeholder="أدخل وصف المشروع"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="category">فئة المشروع:</label>
+            <select id="category">
+                <option value="residential">سكني</option>
+                <option value="commercial">تجاري</option>
+                <option value="industrial">صناعي</option>
+                <option value="infrastructure">بنية تحتية</option>
+                <option value="landscape">تنسيق حدائق</option>
+                <option value="interior">تصميم داخلي</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="client">العميل:</label>
+            <input type="text" id="client" placeholder="أدخل اسم العميل">
+        </div>
+        <div class="form-group">
+            <label for="year">سنة المشروع:</label>
+            <input type="number" id="year" value="2025">
+        </div>
+        <div class="form-group">
+            <label for="location">موقع المشروع:</label>
+            <input type="text" id="location" placeholder="أدخل موقع المشروع">
+        </div>
+        <button id="addProjectButton">إضافة المشروع</button>
+        <div class="result" id="projectResult">نتيجة إضافة المشروع ستظهر هنا...</div>
+    </div>
+
+    <script>
+        // عناصر DOM
+        const tokenInput = document.getElementById('token');
+        const imageInput = document.getElementById('image');
+        const imagePreview = document.getElementById('imagePreview');
+        const uploadButton = document.getElementById('uploadButton');
+        const uploadResult = document.getElementById('uploadResult');
+        const addProjectButton = document.getElementById('addProjectButton');
+        const projectResult = document.getElementById('projectResult');
+        
+        // متغيرات عامة
+        let uploadedImageUrl = '';
+        
+        // معاينة الصورة عند اختيارها
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // رفع الصورة
+        uploadButton.addEventListener('click', async function() {
+            const file = imageInput.files[0];
+            const token = tokenInput.value.trim();
+            
+            if (!file) {
+                uploadResult.innerHTML = '<p class="error">يرجى اختيار صورة أولاً</p>';
+                return;
+            }
+            
+            uploadResult.textContent = 'جاري رفع الصورة...';
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            try {
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch('http://localhost:5000/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: headers
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    uploadedImageUrl = data.imageUrl;
+                    uploadResult.innerHTML = `
+                        <p class="success">تم رفع الصورة بنجاح!</p>
+                        <p>رابط الصورة: <a href="${data.imageUrl}" target="_blank">${data.imageUrl}</a></p>
+                        <p>معرف الصورة: ${data.publicId}</p>
+                        <img src="${data.imageUrl}" style="max-width: 100%; max-height: 200px;">
+                    `;
+                } else {
+                    uploadResult.innerHTML = `
+                        <p class="error">خطأ في رفع الصورة!</p>
+                        <p>الرسالة: ${data.message || 'خطأ غير معروف'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                uploadResult.innerHTML = `
+                    <p class="error">خطأ في رفع الصورة!</p>
+                    <p>الرسالة: ${error.message}</p>
+                `;
+            }
+        });
+        
+        // إضافة مشروع جديد
+        addProjectButton.addEventListener('click', async function() {
+            const token = tokenInput.value.trim();
+            
+            if (!token) {
+                projectResult.innerHTML = '<p class="error">يرجى إدخال رمز المصادقة (JWT)</p>';
+                return;
+            }
+            
+            if (!uploadedImageUrl) {
+                projectResult.innerHTML = '<p class="error">يرجى رفع صورة أولاً</p>';
+                return;
+            }
+            
+            const projectData = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                category: document.getElementById('category').value,
+                imageUrl: uploadedImageUrl,
+                client: document.getElementById('client').value,
+                year: parseInt(document.getElementById('year').value),
+                location: document.getElementById('location').value
+            };
+            
+            if (!projectData.title) {
+                projectResult.innerHTML = '<p class="error">يرجى إدخال عنوان المشروع</p>';
+                return;
+            }
+            
+            projectResult.textContent = 'جاري إضافة المشروع...';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/projects', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(projectData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    projectResult.innerHTML = `
+                        <p class="success">تم إضافة المشروع بنجاح!</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    projectResult.innerHTML = `
+                        <p class="error">خطأ في إضافة المشروع!</p>
+                        <p>الرسالة: ${data.message || 'خطأ غير معروف'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                projectResult.innerHTML = `
+                    <p class="error">خطأ في إضافة المشروع!</p>
+                    <p>الرسالة: ${error.message}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

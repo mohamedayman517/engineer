@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار رفع الصور</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            direction: rtl;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-height: 100px;
+            white-space: pre-wrap;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            display: block;
+        }
+        .token-input {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <h1>اختبار رفع الصور إلى Cloudinary</h1>
+    
+    <div class="form-container">
+        <h2>رفع صورة باستخدام نموذج HTML</h2>
+        <form id="uploadForm" action="http://localhost:5000/api/upload" method="post" enctype="multipart/form-data">
+            <div>
+                <label for="image">اختر صورة:</label>
+                <input type="file" id="image" name="image" accept="image/*" required>
+            </div>
+            <div>
+                <label for="token">رمز المصادقة (JWT):</label>
+                <input type="text" id="token" class="token-input" placeholder="أدخل رمز JWT هنا (اختياري)">
+            </div>
+            <button type="submit">رفع الصورة</button>
+        </form>
+    </div>
+
+    <div class="result" id="result">النتيجة ستظهر هنا...</div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'جاري الرفع...';
+            
+            const formData = new FormData(this);
+            const token = document.getElementById('token').value.trim();
+            
+            try {
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch('http://localhost:5000/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: headers
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <h3>تم الرفع بنجاح!</h3>
+                        <p>رابط الصورة: <a href="${data.url}" target="_blank">${data.url}</a></p>
+                        <p>معرف الصورة: ${data.public_id}</p>
+                        <img src="${data.url}" style="max-width: 100%; max-height: 300px;">
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <h3>خطأ!</h3>
+                        <p>الرسالة: ${data.message || 'خطأ غير معروف'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>خطأ!</h3>
+                    <p>الرسالة: ${error.message}</p>
+                    <pre>${error.stack}</pre>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

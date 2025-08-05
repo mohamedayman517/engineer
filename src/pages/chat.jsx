@@ -11,16 +11,52 @@ function Chat() {
   ]);
   const [input, setInput] = useState("");
   const [showQuestions, setShowQuestions] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [faqs, setFaqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const questionsPerPage = 6;
 
-  // الأسئلة الشائعة
-  const commonQuestions = [
-    "ما هي الخدمات التي تقدمها؟",
-    "كم تكلفة التصميم لمشروع صغير؟",
-    "ما هي مواعيد العمل؟",
-    "هل تقدم استشارات مجانية؟",
-    "كم يستغرق تسليم التصميم؟",
-    "هل تقدم رسومات ثلاثية الأبعاد؟",
-  ];
+  // Fetch FAQs from the database
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('/api/faq');
+        if (response.data && Array.isArray(response.data)) {
+          setFaqs(response.data);
+        } else {
+          console.error('Unexpected response format:', response.data);
+          setFaqs([]);
+        }
+      } catch (err) {
+        console.error('Error fetching FAQs:', err);
+        setError('فشل تحميل الأسئلة الشائعة. يرجى المحاولة مرة أخرى لاحقاً.');
+        setFaqs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFaqs();
+  }, []);
+
+  // Get current questions
+  const indexOfLastQuestion = currentPage * questionsPerPage;
+  const indexOfFirstQuestion = indexOfLastQuestion - questionsPerPage;
+  const currentQuestions = faqs.slice(indexOfFirstQuestion, indexOfLastQuestion);
+  const totalPages = Math.ceil(faqs.length / questionsPerPage);
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const nextPage = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
+  const prevPage = () => currentPage > 1 && setCurrentPage(currentPage - 1);
+
+  // Handle question click
+  const handleQuestionClick = (question) => {
+    setInput(question);
+    sendMessage(question);
+  };
 
   const sendMessage = async (questionText = null) => {
     const question = questionText || input;
@@ -31,7 +67,7 @@ function Chat() {
     setShowQuestions(false); // إخفاء الأسئلة بعد إرسال أول سؤال
 
     try {
-      const res = await axios.post("/api/faq", {
+      const res = await axios.post("/api/faq/search", {
         question: question,
       });
 
@@ -39,7 +75,7 @@ function Chat() {
         ...prev,
         {
           sender: "bot",
-          text: res.data.answer || "عذراً، لا أعرف إجابة هذا السؤال.",
+          text: res.data.answer || "عذراً، لا أعرف إجابة هذا السؤال. يمكنك التواصل معي مباشرة.",
         },
       ]);
     } catch (err) {
@@ -52,12 +88,8 @@ function Chat() {
     setInput("");
   };
 
-  const handleQuestionClick = (question) => {
-    sendMessage(question);
-  };
-
   return (
-    <div className="chat-page position-relative overflow-hidden">
+    <div className="chat-page position-relative overflow-hidden" style={{ marginTop: '80px' }}>
       {/* Animated Background */}
       <div
         className="position-fixed w-100 h-100"
@@ -263,30 +295,112 @@ function Chat() {
                 </button>
               </div>
               <div className="row">
-                {commonQuestions.map((question, idx) => (
-                  <div key={idx} className="col-md-6 mb-3">
-                    <button
-                      className="btn btn-sm w-100 text-start hover-lift pulse-on-hover fw-medium"
-                      onClick={() => handleQuestionClick(question)}
-                      style={{
-                        fontSize: "0.9rem",
-                        whiteSpace: "normal",
-                        textAlign: "right",
-                        background: "linear-gradient(45deg, #007bff, #0056b3)",
-                        backdropFilter: "blur(10px)",
-                        border: "2px solid rgba(255, 255, 255, 0.4)",
-                        color: "white",
-                        padding: "12px 16px",
-                        borderRadius: "12px",
-                        boxShadow: "0 4px 15px rgba(0, 123, 255, 0.3)",
-                      }}
-                    >
-                      <i className="fas fa-arrow-left me-2 text-warning"></i>
-                      {question}
-                    </button>
+                {loading ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">جاري التحميل...</span>
+                    </div>
+                    <p className="mt-2 text-white-50">جاري تحميل الأسئلة...</p>
                   </div>
-                ))}
+                ) : error ? (
+                  <div className="alert alert-warning text-center">
+                    <i className="fas fa-exclamation-triangle me-2"></i>
+                    {error}
+                  </div>
+                ) : faqs.length === 0 ? (
+                  <div className="alert alert-info text-center">
+                    <i className="fas fa-info-circle me-2"></i>
+                    لا توجد أسئلة متاحة حالياً
+                  </div>
+                ) : (
+                  currentQuestions.map((faq, idx) => (
+                    <div key={faq._id || idx} className="col-md-6 mb-3">
+                      <button
+                        className="btn btn-sm w-100 text-start hover-lift pulse-on-hover fw-medium"
+                        onClick={() => handleQuestionClick(faq.question)}
+                        style={{
+                          fontSize: "0.9rem",
+                          whiteSpace: "normal",
+                          textAlign: "right",
+                          background: "linear-gradient(45deg, #007bff, #0056b3)",
+                          backdropFilter: "blur(10px)",
+                          border: "2px solid rgba(255, 255, 255, 0.4)",
+                          color: "white",
+                          padding: "12px 16px",
+                          borderRadius: "12px",
+                          boxShadow: "0 4px 15px rgba(0, 123, 255, 0.3)",
+                        }}
+                      >
+                        <i className="fas fa-arrow-left me-2 text-warning"></i>
+                        {faq.question}
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
+              
+              {/* Pagination */}
+              {faqs.length > questionsPerPage && (
+                <div className="d-flex justify-content-center mt-3">
+                  <nav aria-label="Page navigation">
+                    <ul className="pagination pagination-sm">
+                      <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={prevPage}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            color: 'white',
+                            margin: '0 2px',
+                            borderRadius: '8px'
+                          }}
+                        >
+                          <i className="fas fa-chevron-right"></i>
+                        </button>
+                      </li>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
+                        <li key={number} className="page-item">
+                          <button 
+                            className={`page-link ${currentPage === number ? 'active' : ''}`}
+                            onClick={() => paginate(number)}
+                            style={{
+                              background: currentPage === number 
+                                ? 'linear-gradient(45deg, #007bff, #0056b3)' 
+                                : 'rgba(255, 255, 255, 0.1)',
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              color: currentPage === number ? 'white' : 'rgba(255, 255, 255, 0.8)',
+                              margin: '0 2px',
+                              borderRadius: '8px',
+                              minWidth: '32px',
+                              textAlign: 'center'
+                            }}
+                          >
+                            {number}
+                          </button>
+                        </li>
+                      ))}
+                      
+                      <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={nextPage}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            color: 'white',
+                            margin: '0 2px',
+                            borderRadius: '8px'
+                          }}
+                        >
+                          <i className="fas fa-chevron-left"></i>
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              )}
             </div>
           )}
         </div>

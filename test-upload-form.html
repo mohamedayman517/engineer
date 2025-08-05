@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار رفع الصور - نموذج HTML</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            direction: rtl;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>اختبار رفع الصور إلى Cloudinary - نموذج HTML</h1>
+    
+    <form action="http://localhost:5000/api/upload" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="image">اختر صورة:</label>
+            <input type="file" id="image" name="image" accept="image/*">
+        </div>
+        
+        <button type="submit">رفع الصورة</button>
+    </form>
+    
+    <p>ملاحظة: هذا النموذج يستخدم طريقة HTML التقليدية لرفع الملفات بدلاً من JavaScript.</p>
+</body>
+</html>
