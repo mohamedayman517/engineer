@@ -5,7 +5,8 @@ const path = require("path");
 require("dotenv").config();
 
 const app = express();
-const port = process.env.PORT || 5000;
+// Port configuration for different environments
+const port = process.env.PORT || (process.env.REPLIT_DB_URL ? 3000 : 5000);
 
 // Middleware setup
 app.use(express.json({ limit: '50mb' }));
