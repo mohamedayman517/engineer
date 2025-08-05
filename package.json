@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "vite build",
     "vercel-build": "vite build",
-    "heroku-postbuild": "npm run build",
     "preview": "vite preview",
     "seed": "node seed.js",
     "start": "node app.js",
@@ -20,11 +19,7 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "description": "Full-stack ChatBot application with React frontend and Node.js backend",
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
-  },
+  "description": "",
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
     "nodemon": "^3.1.10",
