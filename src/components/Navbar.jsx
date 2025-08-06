@@ -80,20 +80,17 @@ function Navbar() {
               </Link>
             </li>
             )}
-            {!isAdmin() && !isEngineer (
-              <li className="nav-item">
-                <Link className="nav-link" to="/contact">
-                  <i className="fas fa-envelope me-1"></i>تواصل
-                </Link>
-              </li>
-            )}
-            {!isAdmin() && !isEngineer (
-              <li className="nav-item">
-                <Link className="nav-link" to="/chat">
-                  <i className="fas fa-comments me-1"></i>المحادثة
-                </Link>
-              </li>
-            )}
+            {/* Contact and Chat - Available to all users including guests */}
+            <li className="nav-item">
+              <Link className="nav-link" to="/contact">
+                <i className="fas fa-envelope me-1"></i>تواصل
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/chat">
+                <i className="fas fa-comments me-1"></i>المحادثة
+              </Link>
+            </li>
 
             {/* Admin Panel - Visible only to admins */}
             {isAdmin() && (

@@ -76,10 +76,23 @@ function Login() {
         }
       });
       
-      const errorMessage = err.response?.data?.message_ar || 
-                         err.response?.data?.error || 
-                         err.response?.data?.message || 
-                         "حدث خطأ أثناء محاولة تسجيل الدخول";
+      let errorMessage = "حدث خطأ أثناء محاولة تسجيل الدخول";
+      
+      if (err.response?.status === 401) {
+        errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة. تأكد من البيانات وحاول مرة أخرى.";
+      } else if (err.response?.status === 400) {
+        errorMessage = err.response?.data?.message_ar || "البيانات المدخلة غير صحيحة";
+      } else if (err.response?.status === 500) {
+        errorMessage = "خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً.";
+      } else if (err.code === 'NETWORK_ERROR' || err.message.includes('Network Error')) {
+        errorMessage = "خطأ في الاتصال بالخادم. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.";
+      } else {
+        errorMessage = err.response?.data?.message_ar || 
+                      err.response?.data?.error || 
+                      err.response?.data?.message || 
+                      "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.";
+      }
+      
       setError(errorMessage);
     } finally {
       setLoading(false);

@@ -18,7 +18,7 @@ const VideoPlayer = ({ embedUrl, videoUrl }) => {
   // إذا كان هناك رابط فيديو مرفوع، استخدمه
   if (videoUrl) {
     return (
-      <div className="embed-responsive embed-responsive-16by9">
+      <div className="ratio ratio-16x9">
         <video 
           className="embed-responsive-item" 
           controls 

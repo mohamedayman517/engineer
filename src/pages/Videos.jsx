@@ -591,28 +591,36 @@ function Videos() {
                     الحد الأقصى لحجم الملف: 100 ميجابايت. الصيغ المدعومة: MP4, MOV, AVI, etc.
                   </small>
                   
-                  {uploadingVideo && (
-                    <div className="mt-2">
-                      <div className="progress">
+                  {(uploadingVideo || uploadProgress > 0) && (
+                    <div className="mt-3">
+                      <div className="d-flex justify-content-between align-items-center mb-1">
+                        <span className="small fw-bold">جاري الرفع...</span>
+                        <span className="small">{uploadProgress}%</span>
+                      </div>
+                      <div className="progress" style={{ height: '8px' }}>
                         <div 
-                          className="progress-bar progress-bar-striped progress-bar-animated" 
+                          className="progress-bar progress-bar-striped progress-bar-animated bg-success" 
                           role="progressbar" 
                           style={{ width: `${uploadProgress}%` }}
                           aria-valuenow={uploadProgress} 
                           aria-valuemin="0" 
                           aria-valuemax="100"
-                        >
-                          {uploadProgress}%
-                        </div>
+                        />
                       </div>
+                      <small className="text-muted d-block mt-1">
+                        يرجى الانتظار حتى يكتمل التحميل قبل المتابعة
+                      </small>
                     </div>
                   )}
                   
                   {newVideo.videoUrl && (
-                    <div className="mt-2">
-                      <div className="alert alert-success mb-2">
-                        <i className="fas fa-check-circle me-2"></i>
-                        تم رفع الفيديو بنجاح!
+                    <div className="mt-3">
+                      <div className="alert alert-success d-flex align-items-center mb-3">
+                        <i className="fas fa-check-circle me-2 fs-4"></i>
+                        <div>
+                          <h6 className="mb-0">تم رفع الفيديو بنجاح!</h6>
+                          <small className="d-block mt-1">يمكنك الآن إضافة تفاصيل الفيديو وحفظه</small>
+                        </div>
                       </div>
                       <div className="mt-2 border rounded p-2">
                         <div className="d-flex justify-content-between align-items-center mb-2">
@@ -634,7 +642,7 @@ function Videos() {
                             إزالة
                           </button>
                         </div>
-                        <div style={{ maxWidth: '100%', height: '200px' }}>
+                        <div className="ratio ratio-16x9">
                           <VideoPlayer videoUrl={newVideo.videoUrl} />
                         </div>
                       </div>
@@ -663,17 +671,37 @@ function Videos() {
 
 
 
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setShowAddModal(false)}
-                  >
-                    إلغاء
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    إضافة الفيديو
-                  </button>
+                <div className="modal-footer d-flex justify-content-between">
+                  <div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowAddModal(false)}
+                      disabled={uploadingVideo}
+                    >
+                      <i className="fas fa-times me-1"></i>
+                      إلغاء
+                    </button>
+                  </div>
+                  <div>
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary"
+                      disabled={!newVideo.videoUrl || uploadingVideo}
+                    >
+                      {uploadingVideo ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          جاري الرفع...
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-plus-circle me-1"></i>
+                          إضافة الفيديو
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
