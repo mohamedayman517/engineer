@@ -7,6 +7,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Important for Replit
     port: 3002,
+    allowedHosts: 'all', // Fix for Replit blocked request
     proxy: {
       "/api": {
         target: process.env.REPLIT_DB_URL ? "http://0.0.0.0:3000" : "http://localhost:5000",
@@ -23,6 +24,7 @@ export default defineConfig({
   },
   preview: {
     host: '0.0.0.0',
-    port: 3002
+    port: 3002,
+    allowedHosts: 'all'
   }
 });
